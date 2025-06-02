@@ -1,0 +1,35 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Android Studio
+.idea/
+.gradle/
+build/
+
+# Tệp tạm và cache
+*.log
+*.cache
+
+# Tệp đầu ra ứng dụng
+*.apk
+*.aab
+*.keystore
+
+# Firebase (tùy chọn)
+google-services.json
+
+# Tệp tạm khác
+captures/
+*.tmp
