@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
+    id("dagger.hilt.android.plugin")
+    kotlin("kapt")
 }
 
 android {
@@ -33,6 +37,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
+    }
+    kapt {
+        correctErrorTypes = true
     }
     buildFeatures {
         compose = true
@@ -56,4 +64,56 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Firebase BOM (Bill of Materials)
+    implementation(platform("com.google.firebase:firebase-bom:32.5.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.4")
+
+    // Hilt (Dependency Injection)
+    implementation("com.google.dagger:hilt-android:2.48.1")
+    kapt("com.google.dagger:hilt-compiler:2.48.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+
+    // Coil (Image loading)
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // Drag & Drop
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
+    // Date/Time Picker
+    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
+
+    // File Picker
+    implementation("com.darkrockstudios:mpfilepicker:1.1.0")
+
+    // Room Database (Offline support)
+    implementation("androidx.room:room-runtime:2.6.0")
+    implementation("androidx.room:room-ktx:2.6.0")
+    kapt("androidx.room:room-compiler:2.6.0")
+
+    // Charts (Thống kê)
+    implementation("com.patrykandpatrick.vico:compose:1.12.0")
+
+    // Rich Text Editor
+    implementation("com.halilibo.compose-richtext:richtext-ui:0.17.0")
+
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
+
+    // Constraint Layout Compose
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
+
+    // Unit Testing
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("io.mockk:mockk:1.13.8")
+
 }
