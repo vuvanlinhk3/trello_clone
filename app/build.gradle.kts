@@ -45,6 +45,9 @@ android {
     buildFeatures {
         compose = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.12"
+    }
 }
 
 dependencies {
@@ -57,6 +60,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.foundation.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -66,7 +70,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Firebase BOM (Bill of Materials)
-    implementation(platform("com.google.firebase:firebase-bom:32.5.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.14.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
@@ -75,12 +79,12 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics-ktx")
 
     // Navigation Compose
-    implementation("androidx.navigation:navigation-compose:2.7.4")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
 
     // Hilt (Dependency Injection)
-    implementation("com.google.dagger:hilt-android:2.48.1")
+    implementation("com.google.dagger:hilt-android:2.49")
     kapt("com.google.dagger:hilt-compiler:2.48.1")
-    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Coil (Image loading)
     implementation("io.coil-kt:coil-compose:2.4.0")
@@ -95,9 +99,9 @@ dependencies {
     implementation("com.darkrockstudios:mpfilepicker:1.1.0")
 
     // Room Database (Offline support)
-    implementation("androidx.room:room-runtime:2.6.0")
-    implementation("androidx.room:room-ktx:2.6.0")
-    kapt("androidx.room:room-compiler:2.6.0")
+    implementation("androidx.room:room-runtime:2.7.1")
+    implementation("androidx.room:room-ktx:2.7.1")
+    kapt("androidx.room:room-compiler:2.7.1")
 
     // Charts (Thống kê)
     implementation("com.patrykandpatrick.vico:compose:1.12.0")
@@ -106,14 +110,13 @@ dependencies {
     implementation("com.halilibo.compose-richtext:richtext-ui:0.17.0")
 
     // Material Icons Extended
-    implementation("androidx.compose.material:material-icons-extended:1.5.4")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     // Constraint Layout Compose
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
 
     // Unit Testing
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("io.mockk:mockk:1.13.8")
-
 }
