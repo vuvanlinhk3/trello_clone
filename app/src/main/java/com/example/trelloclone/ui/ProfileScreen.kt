@@ -1,6 +1,5 @@
 package com.example.trelloclone.ui
 
-// Import các thư viện cần thiết
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -32,36 +31,39 @@ import java.io.InputStream
 
 // ---------- ViewModel & State ----------
 
-// State lưu trữ thông tin giao diện người dùng
 data class ProfileState(
-    val displayName: String = "",       // Tên hiển thị người dùng
-    val email: String = "",             // Email người dùng
-    val avatarBitmap: Bitmap? = null,   // Ảnh đại diện đã load
-    val newAvatarUri: Uri? = null       // URI ảnh mới chọn từ thiết bị
+    val displayName: String = "",
+    val email: String = "",
+    val avatarBitmap: Bitmap? = null,
+    val newAvatarUri: Uri? = null,
+    val emailEditable: String = "",    // email editable state
+    val showDeleteDialog: Boolean = false,
+    val infoMessage: String? = null
 )
 
-// ViewModel quản lý logic của màn hình hồ sơ
 class ProfileViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    // Trạng thái UI được lưu trong State
     private val _uiState = mutableStateOf(ProfileState())
     val uiState: State<ProfileState> = _uiState
 
-    init {
-        loadUserData()  // Khi ViewModel được tạo, tải dữ liệu người dùng
+    fun setInfoMessage(message: String?) {
+        _uiState.value = _uiState.value.copy(infoMessage = message)
     }
 
-    // Tải dữ liệu người dùng hiện tại từ FirebaseAuth và FirebaseStorage
+    init {
+        loadUserData()
+    }
+
     private fun loadUserData() {
         val user = auth.currentUser
         _uiState.value = _uiState.value.copy(
             displayName = user?.displayName.orEmpty(),
-            email = user?.email.orEmpty()
+            email = user?.email.orEmpty(),
+            emailEditable = user?.email.orEmpty()
         )
 
-        // Tải ảnh đại diện từ Firebase Storage (nếu có)
         val avatarRef = storage.reference.child("avatars/${user?.uid}.jpg")
         avatarRef.getBytes(1024 * 1024).addOnSuccessListener { bytes ->
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -69,12 +71,14 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // Khi tên thay đổi từ TextField, cập nhật vào state
     fun onNameChanged(name: String) {
         _uiState.value = _uiState.value.copy(displayName = name)
     }
 
-    // Khi người dùng chọn ảnh mới, cập nhật ảnh và Uri vào state
+    fun onEmailChanged(email: String) {
+        _uiState.value = _uiState.value.copy(emailEditable = email)
+    }
+
     fun setNewAvatar(bitmap: Bitmap, uri: Uri) {
         _uiState.value = _uiState.value.copy(
             avatarBitmap = bitmap,
@@ -82,51 +86,129 @@ class ProfileViewModel : ViewModel() {
         )
     }
 
-    // Lưu tên mới và avatar mới (nếu có) lên Firebase
     fun saveProfile() {
         val user = auth.currentUser ?: return
 
-        // Cập nhật tên hiển thị
+        // Cập nhật tên và email nếu khác
         val updates = userProfileChangeRequest {
             displayName = _uiState.value.displayName
         }
-        user.updateProfile(updates)
+        user.updateProfile(updates).addOnCompleteListener {
+            // nếu cập nhật tên thành công thì cập nhật email (Firebase yêu cầu re-authentication nếu email thay đổi)
+            if (user.email != _uiState.value.emailEditable) {
+                user.updateEmail(_uiState.value.emailEditable).addOnCompleteListener { emailResult ->
+                    if (emailResult.isSuccessful) {
+                        _uiState.value = _uiState.value.copy(infoMessage = "Cập nhật email thành công")
+                    } else {
+                        _uiState.value = _uiState.value.copy(infoMessage = "Lỗi cập nhật email: ${emailResult.exception?.message}")
+                    }
+                }
+            }
+        }
 
-        // Nếu có ảnh mới, upload lên Firebase Storage
-        val uri = _uiState.value.newAvatarUri ?: return
-        val ref = storage.reference.child("avatars/${user.uid}.jpg")
-        ref.putFile(uri)
+        // Upload avatar nếu có
+        val uri = _uiState.value.newAvatarUri
+        if (uri != null) {
+            val ref = storage.reference.child("avatars/${user.uid}.jpg")
+            ref.putFile(uri)
+        }
     }
 
-    // Đăng xuất người dùng
+    // Gửi email đổi mật khẩu
+    fun sendPasswordResetEmail(onResult: (Boolean, String?) -> Unit) {
+        val email = auth.currentUser?.email
+        if (email.isNullOrEmpty()) {
+            onResult(false, "Email không tồn tại")
+            return
+        }
+        auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                onResult(true, "Đã gửi email đổi mật khẩu đến $email")
+            } else {
+                onResult(false, task.exception?.message)
+            }
+        }
+    }
+
+    // Hiển thị dialog xác nhận xóa tài khoản
+    fun showDeleteAccountDialog(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showDeleteDialog = show)
+    }
+
+    // Xóa tài khoản hiện tại
+    fun deleteAccount(onComplete: (Boolean, String?) -> Unit) {
+        val user = auth.currentUser ?: run {
+            onComplete(false, "Người dùng chưa đăng nhập")
+            return
+        }
+        user.delete().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                onComplete(true, null)
+            } else {
+                onComplete(false, task.exception?.message)
+            }
+        }
+    }
+
     fun logout() {
         auth.signOut()
     }
+
+    fun clearMessage() {
+        _uiState.value = _uiState.value.copy(infoMessage = null)
+    }
 }
 
-// ---------- Giao diện hồ sơ người dùng ----------
+// ---------- Composable giao diện ----------
 
 @Composable
 fun ProfileScreen(
-    onRegisterSuccess: () -> Unit // Callback để chuyển màn sau khi logout
+    onLogoutSuccess: () -> Unit // callback chuyển màn hình khi đăng xuất hoặc xóa tài khoản thành công
 ) {
     val viewModel: ProfileViewModel = viewModel()
     val state by viewModel.uiState
     val context = LocalContext.current
 
-    // Cho phép chọn ảnh từ thiết bị (gallery)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            // Mở ảnh từ Uri và chuyển thành Bitmap
             val stream: InputStream? = context.contentResolver.openInputStream(it)
             val bitmap = BitmapFactory.decodeStream(stream)
             viewModel.setNewAvatar(bitmap, it)
         }
     }
 
-    // Giao diện cột chính
+    // Hiển thị dialog xác nhận xóa tài khoản
+    if (state.showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.showDeleteAccountDialog(false) },
+            title = { Text("Xác nhận") },
+            text = { Text("Bạn có chắc chắn muốn xóa tài khoản không? Hành động này không thể hoàn tác.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteAccount { success, message ->
+                        if (success) {
+                            viewModel.showDeleteAccountDialog(false)
+                            onLogoutSuccess()
+                        } else {
+                            // Hiển thị lỗi, có thể thêm Snackbar hoặc Toast (đơn giản dùng message Text ở dưới)
+                            viewModel.showDeleteAccountDialog(false)
+                            viewModel.clearMessage()
+                        }
+                    }
+                }) {
+                    Text("Xóa")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.showDeleteAccountDialog(false) }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,7 +217,6 @@ fun ProfileScreen(
     ) {
         Spacer(Modifier.height(20.dp))
 
-        // Vùng avatar (nhấn để chọn ảnh mới)
         Box(
             modifier = Modifier
                 .size(100.dp)
@@ -162,10 +243,16 @@ fun ProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Hiển thị email (chỉ đọc)
-        Text(text = state.email, style = MaterialTheme.typography.bodyMedium)
+        // Email có thể chỉnh sửa
+        OutlinedTextField(
+            value = state.emailEditable,
+            onValueChange = { viewModel.onEmailChanged(it) },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        // TextField chỉnh sửa tên hiển thị
+        Spacer(Modifier.height(16.dp))
+
         OutlinedTextField(
             value = state.displayName,
             onValueChange = { viewModel.onNameChanged(it) },
@@ -175,21 +262,47 @@ fun ProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Nút lưu thông tin lên Firebase
         Button(onClick = { viewModel.saveProfile() }) {
             Text("Lưu thay đổi")
         }
 
-        Spacer(modifier = Modifier.height(16.dp)) // khoảng cách giữa 2 nút
-        // Nút đăng xuất
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = {
+            viewModel.sendPasswordResetEmail { success, message ->
+                // Hiển thị thông báo, có thể dùng Snackbar hoặc Toast. Đơn giản dùng message Text
+                viewModel.setInfoMessage(message)
+            }
+        }) {
+            Text("Đổi mật khẩu")
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         Button(
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            onClick = { viewModel.showDeleteAccountDialog(true) }
+        ) {
+            Text("Xóa tài khoản", color = Color.White)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
             onClick = {
                 viewModel.logout()
-                onRegisterSuccess() // Thông báo để điều hướng hoặc reset UI
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                onLogoutSuccess()
+            }
         ) {
             Text("Đăng xuất", color = Color.White)
+        }
+
+        // Hiển thị thông báo lỗi hoặc thành công
+        state.infoMessage?.let { msg ->
+            Spacer(Modifier.height(16.dp))
+            Text(text = msg, color = Color.Red)
+            // Tự động xóa thông báo sau vài giây hoặc khi người dùng nhập tiếp
         }
     }
 }
