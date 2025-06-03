@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TrelloClone</string>
+    <string name="default_web_client_id">1030926311245-330ntce9evce98gn69guaev6db44h9tt.apps.googleusercontent.com</string>
+
 </resources>
