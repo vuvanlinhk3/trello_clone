@@ -119,7 +119,12 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("io.mockk:mockk:1.13.8")
+<<<<<<< HEAD
 
     // Thêm Coil để hiển thị ảnh trong Jetpack Compose
     implementation("io.coil-kt:coil-compose:2.4.0")
+=======
+    implementation ("com.google.android.gms:play-services-auth:21.0.0")
+
+>>>>>>> 2358ed24e94b5e31b7e5a756897996e459caccc7
 }
